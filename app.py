@@ -74,10 +74,6 @@ def register():
     Label(screen1, text="").pack()
     Button(screen1, text="register", command=register_user).pack()
     
-global sno
-global qty
-sno=qty=0
-
 def display():
      cursor=con.cursor()
      cursor.execute("Select * from Products")
