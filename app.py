@@ -73,6 +73,23 @@ def register():
     Entry(screen1, textvariable=address).pack()
     Label(screen1, text="").pack()
     Button(screen1, text="register", command=register_user).pack()
+    
+global sno
+global qty
+sno=qty=0
+
+def display():
+     cursor=con.cursor()
+     cursor.execute("Select * from Products")
+     data=cursor.fetchall()
+     for i in data:
+          print(i)
+def search(s):
+     cursor=con.cursor()
+     cursor.execute(f"Select * from Products where Name='{s}'")
+     data=cursor.fetchall()
+     for i in data:
+          print(i)
 
 def shop():
     for widgets in root.winfo_children():
