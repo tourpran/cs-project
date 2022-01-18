@@ -7,8 +7,7 @@ from PIL import ImageTk, Image
 from functools import partial
 
 global id
-global qty
-id = qty = 0
+id= 0
 
 # Tkinter functions:
 def login():
@@ -22,13 +21,14 @@ def login():
     global passwd
     passwd = StringVar()
 
-    Label(screen1, text="LOGIN", font= ('Helvetica 15 underline')).pack()
+    Label(screen1, text="").pack()
+    Label(screen1, text="LOGIN", font= ('Helvetica 18 bold')).pack()
     Label(screen1, text="").pack()
     Label(screen1, text="Username").pack()
     Entry(screen1, textvariable=username).pack()
     Label(screen1, text="").pack()
     Label(screen1, text="Password").pack()
-    Entry(screen1, textvariable=passwd).pack()
+    Entry(screen1, textvariable=passwd, show="*").pack()
     Label(screen1, text="").pack()
     Button(screen1, text="login", command=login_user).pack()
 
@@ -67,59 +67,67 @@ def register():
     Entry(screen1, textvariable=username).pack()
     Label(screen1, text="").pack()
     Label(screen1, text="Password").pack()
-    Entry(screen1, textvariable=passwd).pack()
+    Entry(screen1, textvariable=passwd, show="*").pack()
     Label(screen1, text="").pack()
     Label(screen1, text="Address").pack()
     Entry(screen1, textvariable=address).pack()
     Label(screen1, text="").pack()
     Button(screen1, text="register", command=register_user).pack()
     
-def display():
-     cursor=con.cursor()
-     cursor.execute("Select * from Products")
-     data=cursor.fetchall()
-     for i in data:
-          print(i)
-def search(s):
-     cursor=con.cursor()
-     cursor.execute(f"Select * from Products where Name='{s}'")
-     data=cursor.fetchall()
-     for i in data:
-          print(i)
-
 def shop():
     for widgets in root.winfo_children():
       widgets.destroy()
-    Label(root, text="Shop Items").pack()
+    
+    Label(root, text="").pack()
+    Label(root, text="Shop Items", font=('Helvetica', 18, 'bold')).pack()
     Label(root, text="").pack()
     items = get_items()
-    for product in items:
-        Label(root, text=f"{product[1]}").pack()
+    mycursor = db.cursor()
 
-        Button(root, text="add", command=partial(add_product, f"{product[1]}", f"{product[3]}")).pack()
+    for product in items:
+        
+        mycursor.execute(f"select * from {username_info} where name='{product[1]}'")
+        qty = mycursor.fetchall()
+        
+        Label(root, text=f"{product[1]}({product[3]}) - {qty[0][2]}").pack()
+        img = Image.open(f"/home/tourpran/cs-project/images/{product[1]}.png")
+        img = img.resize((100, 100), Image.ANTIALIAS)
+        img = ImageTk.PhotoImage(img)
+        label = Label(root, image = img)
+        label.image = img
+        label.pack()
+
+        Button(root, text="add", width=10, command=partial(add_product, f"{product[1]}", f"{product[3]}")).pack()
+        Button(root, text="remove", width=10, command=partial(remove_product, f"{product[1]}", f"{product[3]}")).pack()    
         Label(text="").pack()
+    
     Button(root, text="Total", command=bill).pack()
 
 def bill():
     global total 
     total = 0
+
     for widgets in root.winfo_children():
         widgets.destroy()
-    Label(root, text="Totaling your items:").pack()
+
+    Label(root, text="").pack()
+    Label(root, text="Totaling your items:", font=('Helvetica', 18, 'bold')).pack()
     Label(root, text="").pack()
     
     mycursor = db.cursor()
     mycursor.execute(f"select * from {username_info}")
     items = mycursor.fetchall()
-    
-    Label(root, text=f"Product name: Quantity: Price").pack()
+
+    Label(root, text="Product name"+" "*(8)+"Quantity"+" "*(12)+"Price").pack()
+    Label(root, text="").pack()
     for product in items:
-        Label(root, text=f"{product[1]}: {product[2]}: {product[3]}").pack()
+        Label(root, text=f"{product[1]}"+" "*(25-len(product[1]))+f"{product[2]}"+" "*(20-len(str(product[2])))+f"{product[3]}").pack()
         Label(root, text="").pack()
         total += product[2]*product[3]
 
     Label(root, text="--------------").pack()
     Label(root, text=f"Grand total: {total}").pack()
+    Label(root, text="--------------").pack()
     Button(root, text="shop", command=shop).pack()
 
 def main_screen():
@@ -144,7 +152,7 @@ def main_screen():
 
 # Sql functions:
 def add_product(name, price):
-    global id, qty
+    global id
     mycursor = db.cursor()
     mycursor.execute(f"select * from {username_info} where name='{name}'")
     mycursor.fetchall()
@@ -155,11 +163,22 @@ def add_product(name, price):
     else:
         mycursor.execute(f"update {username_info} set qty=qty+1 where name='{name}'")
         db.commit()
+    shop()
     
+def remove_product(name, price):
+    mycursor = db.cursor()
+    mycursor.execute(f"select * from {username_info} where name='{name}' and qty!=0")
+    mycursor.fetchall()
+    if mycursor.rowcount == 0:
+        return 0
+    else:
+        mycursor.execute(f"update {username_info} set qty=qty-1 where name='{name}'")
+        db.commit()
+    shop()
 
 def mysqlconnect():
     global db
-    db = mysql.connector.connect(user = 'pranav', host = 'localhost', password= "password", database = 'retailapp')
+    db = mysql.connector.connect(user = 'tourpran', host = 'localhost', password= "password", database = 'retailapp')
     print("Connected")
 
 def get_items():
@@ -171,8 +190,9 @@ def get_items():
 def initialise():
     mycursor = db.cursor()
     try:
-        mycursor.execute("CREATE TABLE users (name VARCHAR(255), password VARCHAR(255), address VARCHAR(255))")
+        mycursor.execute("create table users (name varchar(255), password varchar(255), address varchar(255))")
         mycursor.execute("create table products(id int, name varchar(100), description varchar(100), price int)")
+
         db.commit()
     except:
         pass
@@ -186,6 +206,8 @@ def register_user():
     mycursor.fetchall()
     if mycursor.rowcount != 0:
         fake_user()
+        return 0
+        
     mycursor.execute(f"INSERT INTO users (name, password, address) VALUES ('{username_info}', '{password_info}', '{address_info}')")
     db.commit()
     screen1.destroy()
@@ -210,6 +232,6 @@ def login_user():
 
 # Initialisation
 mysqlconnect()
-initialise()
+# initialise()
 main_screen()
     
