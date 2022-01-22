@@ -6,6 +6,15 @@ import mysql.connector
 from PIL import ImageTk, Image
 from functools import partial
 
+'''
+query statements used:
+* SELECT
+* UPDATE
+* INSERT
+* CREATE
+'''
+
+
 global id
 id= 0
 
@@ -83,12 +92,15 @@ def shop():
     Label(root, text="").pack()
     items = get_items()
     mycursor = db.cursor()
-
+    print(items)
     for product in items:
-        
+        print(product)
         mycursor.execute(f"select * from {username_info} where name='{product[1]}'")
         qty = mycursor.fetchall()
-        
+        print(qty)
+        if(qty == []):
+            qty = []
+            qty.append([0,0,0,0])
         Label(root, text=f"{product[1]}({product[3]}) - {qty[0][2]}").pack()
         img = Image.open(f"/home/tourpran/cs-project/images/{product[1]}.png")
         img = img.resize((100, 100), Image.ANTIALIAS)
